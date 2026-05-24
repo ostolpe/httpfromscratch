@@ -1,4 +1,4 @@
-# httplabb
+# HTTP from TCP
 
 HTTP/1.1 server and client built from raw TCP in Go. No `net/http`.
 
