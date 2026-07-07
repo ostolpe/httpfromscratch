@@ -154,6 +154,23 @@ func ParseBody(b []byte, length int) (*Body, []byte, error) {
 	return &Body{Data: b[:length]}, nil, nil
 }
 
+var reasonPhrases = map[int]string{
+	200: "OK",
+	201: "Created",
+	204: "No Content",
+	400: "Bad Request",
+	404: "Not Found",
+	405: "Method Not Allowed",
+	500: "Internal Server Error",
+}
+
+func reasonPhrase(code int) string {
+	if p, ok := reasonPhrases[code]; ok {
+		return p
+	}
+	return "Unknown"
+}
+
 func main() {
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
@@ -197,7 +214,7 @@ func main() {
 				return
 			}
 			response := endpoint(request)	
-			client.Write(fmt.Appendf(nil, "HTTP/1.1 %d OK\r\nContent-Length: %d\r\n\r\n%s", response.Statuscode, len(response.Body), response.Body))
+			client.Write(fmt.Appendf(nil, "HTTP/1.1 %d %s\r\nContent-Length: %d\r\n\r\n%s", response.Statuscode, reasonPhrase(response.Statuscode), len(response.Body), response.Body))
 			client.Close()
 		}()
 	}
