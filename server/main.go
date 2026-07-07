@@ -114,11 +114,11 @@ func ParseHeader(b []byte) (*Header, []byte, error) {
 	lines := bytes.Split(header, []byte("\r\n"))
 	fields := make(map[string]string)
 	for _, line := range lines {
-		key, value, ok := bytes.Cut([]byte(line), []byte(":"))
+		key, value, ok := bytes.Cut(line, []byte(":"))
 		if !ok {
 			return nil, nil, ErrInvalidHttpReq
 		}
-		fields[string(key)] = string(value)
+		fields[string(bytes.TrimSpace(key))] = string(bytes.TrimSpace(value))
 	}
 
 	return &Header{
