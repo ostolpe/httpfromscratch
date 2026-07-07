@@ -107,6 +107,11 @@ func ParseRequestLine(b []byte) (*RequestLine, []byte, error) {
 }
 
 func ParseHeader(b []byte) (*Header, []byte, error) {
+	// A request with no header fields leaves just the blank line here.
+	if bytes.HasPrefix(b, []byte(Separator)) {
+		return &Header{Fields: make(map[string]string)}, b[len(Separator):], nil
+	}
+
 	header, remainingReq, ok := bytes.Cut(b, []byte("\r\n\r\n"))
 	if !ok {
 		return nil, nil, ErrInvalidHttpReq
