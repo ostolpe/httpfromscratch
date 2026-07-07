@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -171,6 +172,49 @@ func reasonPhrase(code int) string {
 	return "Unknown"
 }
 
+// ReadRequest keeps reading from the connection until it has the full headers
+// plus however many body bytes Content-Length asks for. A single Read isn't
+// guaranteed to return the whole request.
+func ReadRequest(conn net.Conn) ([]byte, error) {
+	var buf []byte
+	tmp := make([]byte, 1024)
+	for {
+		n, err := conn.Read(tmp)
+		buf = append(buf, tmp[:n]...)
+
+		if idx := bytes.Index(buf, []byte("\r\n\r\n")); idx >= 0 {
+			contentLength := headerContentLength(buf[:idx])
+			if len(buf)-(idx+4) >= contentLength {
+				return buf, nil
+			}
+		}
+
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return buf, nil
+			}
+			return nil, err
+		}
+	}
+}
+
+// headerContentLength pulls Content-Length out of the raw header block so we
+// know how much body to wait for. Returns 0 if it's missing or unparseable.
+func headerContentLength(headerBlock []byte) int {
+	for _, line := range bytes.Split(headerBlock, []byte(Separator)) {
+		key, value, ok := bytes.Cut(line, []byte(":"))
+		if !ok {
+			continue
+		}
+		if strings.EqualFold(string(bytes.TrimSpace(key)), "Content-Length") {
+			if n, err := strconv.Atoi(string(bytes.TrimSpace(value))); err == nil {
+				return n
+			}
+		}
+	}
+	return 0
+}
+
 func main() {
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
@@ -191,15 +235,14 @@ func main() {
 		}
 
 		go func() {
-			buffer := make([]byte, 1024)
-			read, err := client.Read(buffer)
+			raw, err := ReadRequest(client)
 			if err != nil {
 				client.Write([]byte("HTTP/1.1 400 Bad Request\r\nContent-Length: 11\r\n\r\nBad Request"))
 				client.Close()
 				return
 			}
 
-			request, err := ParseRequest(buffer[:read])
+			request, err := ParseRequest(raw)
 			if err != nil {
 				client.Write([]byte("HTTP/1.1 400 Bad Request\r\nContent-Length: 11\r\n\r\nBad Request"))
 				client.Close()
