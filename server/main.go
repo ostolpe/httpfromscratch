@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 )
 
 type Router struct {
@@ -118,7 +119,8 @@ func ParseHeader(b []byte) (*Header, []byte, error) {
 		if !ok {
 			return nil, nil, ErrInvalidHttpReq
 		}
-		fields[string(bytes.TrimSpace(key))] = string(bytes.TrimSpace(value))
+		name := strings.ToLower(string(bytes.TrimSpace(key)))
+		fields[name] = string(bytes.TrimSpace(value))
 	}
 
 	return &Header{
@@ -127,7 +129,7 @@ func ParseHeader(b []byte) (*Header, []byte, error) {
 }
 
 func GetContentLength(fields map[string]string) (int, error) {
-	val, ok := fields["Content-Length"]
+	val, ok := fields["content-length"]
 	if !ok {
 		return 0, nil
 	}
