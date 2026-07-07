@@ -162,8 +162,7 @@ func main() {
 	for {
 		client, err := listener.Accept()
 		if err != nil {
-			client.Write([]byte("HTTP/1.1 400 Bad Request\r\nContent-Length: 11\r\n\r\nBad Request"))
-			client.Close()
+			fmt.Printf("accept error: %v\n", err)
 			continue
 		}
 
