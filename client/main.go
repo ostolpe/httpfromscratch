@@ -11,9 +11,12 @@ func main() {
 	}
 	defer server.Close()	
 	
-	server.Write([]byte("GET /hello HTTP/1.1\r\nHost:localhost:8080\r\n\r\n"))
+	server.Write([]byte("GET /hello HTTP/1.1\r\nHost: localhost:8080\r\n\r\n"))
 	buffer := make([]byte, 1024)
-	server.Read(buffer)
-	fmt.Printf("response: %v", string(buffer))
+	n, err := server.Read(buffer)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("response: %v", string(buffer[:n]))
 }
 
